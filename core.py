@@ -1,12 +1,13 @@
+import datetime
+import time
 from selenium.webdriver import ActionChains
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
-import datetime
+from selenium.webdriver.chrome.options import Options
 from pytz import timezone
-import time
 from dateutil import parser
 
 
@@ -27,14 +28,28 @@ def can_voted_time(mmotop_timer):
 
 class Browser(webdriver.Chrome):
 
-    vote_button_xpath = "//a[@class='btn btn-danger icon-thumbs-up']"
+    USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
+                 " (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
 
     def __init__(self):
-        webdriver.Chrome.__init__(self)
+        options = Options()
+        options.add_argument("--window-size=1920,1080")
+        options.add_argument("--disable-extensions")
+        options.add_argument("--proxy-server='direct://'")
+        options.add_argument("--proxy-bypass-list=*")
+        options.add_argument("--start-maximized")
+        options.add_argument('--headless')
+        options.add_argument('--disable-gpu')
+        options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--ignore-certificate-errors')
+        options.add_argument(f'--user-agent={Browser.USER_AGENT}')
+        webdriver.Chrome.__init__(self, options=options)
 
     def login(self, vk_login, vk_password):
-        self._waiting(xpath=Browser.vote_button_xpath, delay=30)
-        self.find_element_by_xpath(Browser.vote_button_xpath).click()
+        vote_button_xpath = "//a[@class='btn btn-danger icon-thumbs-up']"
+        self._waiting(vote_button_xpath, delay=30)
+        self.find_element_by_xpath(vote_button_xpath).click()
         vk_login_button_xpath = "//a[@href='/users/auth/vkontakte']"
         time.sleep(2)
         self._waiting(xpath=vk_login_button_xpath, type="element_to_be_clickable")
@@ -108,6 +123,7 @@ class Browser(webdriver.Chrome):
         worlds = self.find_elements_by_xpath("//tr[@style='cursor: pointer;']")
         n = n-1
         worlds[n].click()
+        self.save_screenshot("world.png")
 
     def input_name(self, name):
         self._waiting(xpath="//input[@type='text']")
@@ -118,7 +134,7 @@ class Browser(webdriver.Chrome):
 
     def get_page_with_timer(self, url):
         self.get(url)
-        self.find_element_by_xpath(Browser.vote_button_xpath).click()
+        self.find_element_by_xpath("//a[@class='btn btn-danger icon-thumbs-up']").click()
         return self.get_timer()
 
     def main(self, vk_login, vk_password, url, name, world_n, log):

@@ -6,9 +6,14 @@ import threading
 import vk_api
 import requests
 from datetime import datetime
+from PyQt5.QtWidgets import QApplication
 from PyQt5 import QtWidgets, QtGui
 from vk_api.exceptions import BadPassword, Captcha
 from bs4 import BeautifulSoup
+
+
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
+                 " (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
 
 
 def vk_user_data_is_currect(vk_login, vk_password):
@@ -33,7 +38,7 @@ def world_number_is_correct(url, n):
     page = requests.get(url)
     soup = BeautifulSoup(page.text, features="lxml")
     worlds_num = len(soup.find_all("tr", {"style": 'cursor: pointer;'}))
-    if n > worlds_num:
+    if worlds_num < n:
         return False
     return True
 
@@ -49,6 +54,7 @@ class Applicaion(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.checkBox_toggle_password.stateChanged.connect(self.toggle_password)
         self.log = QPlainTextEditLogger(self.plainTextEdit_log)
 
+
     def start(self):
         self._start_button_toggle()
 
@@ -58,12 +64,13 @@ class Applicaion(QtWidgets.QMainWindow, design.Ui_MainWindow):
             password = self.lineEdit_password.text()
             url = self.lineEdit_url.text()
             name = self.lineEdit_name.text()
-            world = self.spinBox_world_number.value()
+            world_number = int(self.spinBox_world_number.value())
             once = self.radioButton_vote_once.isChecked()
             if self._data_is_good(login, password, url):
                 self.log("Данные верны")
-                thread = threading.Thread(target=core.main, args=(login, password, url,
-                                                                  world, name, once, self.log))
+                thread = threading.Thread(target=core.main,
+                                          args=(login, password, url, name, world_number,
+                                                once, self.log))
                 thread.setDaemon(True)
                 thread.start()
                 thread.join()
@@ -74,16 +81,16 @@ class Applicaion(QtWidgets.QMainWindow, design.Ui_MainWindow):
 
     def _data_is_good(self, login, password, url):
         if not login or not password or not url:
-            self.queue.put("Введены не все данные!")
+            self.log("Введены не все данные!")
             return False
         if not vk_user_data_is_currect(login, password):
-            self.queue.put("Введен неправильный логин/пароль!")
+            self.log("Введен неправильный логин/пароль!")
             return False
         if "mmotop.ru/servers/" not in url or not url_is_good(url):
-            self.queue.put("Введена неверная ссылка на сервер!")
+            self.log("Введена неверная ссылка на сервер!")
             return False
         if not world_number_is_correct(url, self.spinBox_world_number.value()):
-            self.queue.put("Указан неверный мир!")
+            self.log("Указан неверный мир!")
             return False
         return True
 
@@ -93,7 +100,9 @@ class Applicaion(QtWidgets.QMainWindow, design.Ui_MainWindow):
                 self.pushButton_start.setEnabled(False)
             else:
                 self.pushButton_start.setEnabled(True)
-        threading.Thread(target=toggle).start()
+        t = threading.Thread(target=toggle)
+        t.setDaemon(True)
+        t.start()
 
     def _save_state(self):
         remember = self.checkBox_remember.isChecked()
@@ -159,7 +168,7 @@ class QPlainTextEditLogger:
     def __call__(self, msg):
         now = datetime.now().strftime("%H:%M:%S")
         self.widget.appendPlainText(now + "  " + str(msg))
-
+        QApplication.processEvents()
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
