@@ -5,7 +5,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.chrome.options import Options
 from pytz import timezone
 from dateutil import parser
@@ -24,6 +24,10 @@ def can_voted_time(mmotop_timer):
     def helper():
         return datetime.datetime.now() >= can_time
     return helper()
+
+
+class WrongWorldError(Exception):
+    pass
 
 
 class Browser(webdriver.Chrome):
@@ -74,7 +78,16 @@ class Browser(webdriver.Chrome):
         except NoSuchElementException:
             return False
 
+    def vote_success(self):
+        try:
+            self._waiting(xpath="//div[@class='ui-pnotify-text' and contains(text(), 'Голос принят')]",
+                          delay=10)
+            return True
+        except TimeoutException:
+            return False
+
     def get_timer(self):
+        self._waiting(xpath="//span[@class='countdown_row countdown_amount']")
         self._waiting(xpath="//span[@class='countdown_row countdown_amount']",
                       type="element_to_be_clickable")
         return self.find_element_by_xpath("//span[@class='countdown_row countdown_amount']").text
@@ -122,14 +135,16 @@ class Browser(webdriver.Chrome):
         time.sleep(2)
         worlds = self.find_elements_by_xpath("//tr[@style='cursor: pointer;']")
         n = n-1
-        worlds[n].click()
-        self.save_screenshot("world.png")
+        try:
+            worlds[n].click()
+        except IndexError:
+            raise WrongWorldError
 
     def input_name(self, name):
         self._waiting(xpath="//input[@type='text']")
         self.execute_script(f"$('#charname input').val('{name}');")
 
-    def confirm(self):
+    def confirm_vote(self):
         self.find_element_by_xpath("//input[@id='check_vote_form']").click()
 
     def get_page_with_timer(self, url):
@@ -149,22 +164,31 @@ class Browser(webdriver.Chrome):
             self._do_slide()
             self.input_name(name)
             self.choice_world(world_n)
-            self.confirm()
-            log("Проголосовали")
+            self.confirm_vote()
+            if self.vote_success():
+                log("Проголосовали")
+            else:
+                log("Ошибка!")
 
 
 def main(vk_login, vk_password, url, name, world_n, once, log):
     while True:
-        browser = Browser()
-        browser.main(vk_login=vk_login, vk_password=vk_password, url=url, name=name,
-                     world_n=world_n, log=log)
-        if not once:
-            timer = parser.parse(browser.get_page_with_timer(url))
-        browser.quit()
-        if once:
-            log("Программа завершила работу")
-            break
-        else:
-            log("Ждем...")
-            while not can_voted_time(timer):
-                time.sleep(300)
+        try:
+            browser = Browser()
+            browser.main(vk_login=vk_login, vk_password=vk_password, url=url, name=name,
+                         world_n=world_n, log=log)
+            if once:
+                log("Программа завершила работу")
+                browser.quit()
+                break
+
+            elif not once:
+                timer = parser.parse(browser.get_page_with_timer(url))
+                is_can_vote = can_voted_time(timer)
+                log("Ждем...")
+                while not is_can_vote:
+                    time.sleep(300)
+        except WrongWorldError:
+            log("Мир указан неверно!")
+            browser.quit()
+            return

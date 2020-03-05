@@ -6,10 +6,9 @@ import threading
 import vk_api
 import requests
 from datetime import datetime
-from PyQt5.QtWidgets import QApplication
 from PyQt5 import QtWidgets, QtGui
 from vk_api.exceptions import BadPassword, Captcha
-from bs4 import BeautifulSoup
+from PyQt5.QtWebEngineWidgets import QWebEngineView
 
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
@@ -34,26 +33,18 @@ def url_is_good(url):
     return True
 
 
-def world_number_is_correct(url, n):
-    page = requests.get(url)
-    soup = BeautifulSoup(page.text, features="lxml")
-    worlds_num = len(soup.find_all("tr", {"style": 'cursor: pointer;'}))
-    if worlds_num < n:
-        return False
-    return True
-
-
 class Applicaion(QtWidgets.QMainWindow, design.Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowIcon(QtGui.QIcon("icon.png"))
         self.setupUi(self)
         self._load_state()
+        self.web = QWebEngineView()
         self.lineEdit_password.setEchoMode(QtWidgets.QLineEdit.Password)
         self.pushButton_start.clicked.connect(self.start)
         self.checkBox_toggle_password.stateChanged.connect(self.toggle_password)
         self.log = QPlainTextEditLogger(self.plainTextEdit_log)
-
+        self.data_is_good = False
 
     def start(self):
         self._start_button_toggle()
@@ -88,9 +79,6 @@ class Applicaion(QtWidgets.QMainWindow, design.Ui_MainWindow):
             return False
         if "mmotop.ru/servers/" not in url or not url_is_good(url):
             self.log("Введена неверная ссылка на сервер!")
-            return False
-        if not world_number_is_correct(url, self.spinBox_world_number.value()):
-            self.log("Указан неверный мир!")
             return False
         return True
 
@@ -168,7 +156,7 @@ class QPlainTextEditLogger:
     def __call__(self, msg):
         now = datetime.now().strftime("%H:%M:%S")
         self.widget.appendPlainText(now + "  " + str(msg))
-        QApplication.processEvents()
+
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
