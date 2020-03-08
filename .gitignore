@@ -128,3 +128,4 @@ dmypy.json
 # Pyre type checker
 .pyre/
 cache.bin
+vk_config.v2.json
