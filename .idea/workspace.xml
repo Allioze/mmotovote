@@ -23,7 +23,7 @@
   <component name="PropertiesComponent">
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/../JsScrapping2.py" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="restartRequiresConfirmation" value="false" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
@@ -179,7 +179,10 @@
       <workItem from="1582904372117" duration="156000" />
       <workItem from="1583085501796" duration="11360000" />
       <workItem from="1583317772188" duration="7959000" />
-      <workItem from="1583401082353" duration="5989000" />
+      <workItem from="1583401082353" duration="6734000" />
+      <workItem from="1583419775729" duration="237000" />
+      <workItem from="1583486073709" duration="1937000" />
+      <workItem from="1583520994786" duration="1000" />
     </task>
     <servers />
   </component>

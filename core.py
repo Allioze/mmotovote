@@ -23,7 +23,7 @@ def can_voted_time(mmotop_timer):
 
     def helper():
         return datetime.datetime.now() >= can_time
-    return helper()
+    return helper
 
 
 class WrongWorldError(Exception):
@@ -186,7 +186,7 @@ def main(vk_login, vk_password, url, name, world_n, once, log):
                 timer = parser.parse(browser.get_page_with_timer(url))
                 is_can_vote = can_voted_time(timer)
                 log("Ждем...")
-                while not is_can_vote:
+                while not is_can_vote():
                     time.sleep(300)
         except WrongWorldError:
             log("Мир указан неверно!")
